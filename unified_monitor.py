@@ -701,6 +701,7 @@ class OrderRecord:
         self.last_select_number_type = None
         self.select_number_type_history = []
         self.number_type_change_alert_fired = False
+        self.draft_payment_alert_fired = False
 
     def set_state(self, ts, new_state, has_payment=False):
         old = self.state
@@ -1222,6 +1223,49 @@ class AutoMonitorEngine:
                     rec.events.append((now_utc(), f"ALERT -- Number type changed: {old_snt} -> {current_snt}"))
                     rec.number_type_change_alert_fired = True
                     order_log(f"NUMBER TYPE CHANGE Order #{oid}: {old_snt} -> {current_snt}", "ALERT")
+
+        # Anomaly: Order stuck in DRAFT but payment already confirmed
+        if not is_initial:
+            for oid, rec in self.orders.items():
+                if rec.draft_payment_alert_fired and not FORCE_ALERT:
+                    continue
+                if rec.state != "draft":
+                    continue
+                # Check payment from Loki logs first
+                payment_confirmed = rec.has_payment_info
+                # Also check Databricks if available
+                if not payment_confirmed and self.db_client.is_enabled:
+                    try:
+                        v = self.db_client.get_order_validation(oid)
+                        if v.get("payment_validated"):
+                            payment_confirmed = True
+                    except Exception:
+                        pass
+                if not payment_confirmed:
+                    continue
+                # Draft + payment confirmed = anomaly
+                rec.draft_payment_alert_fired = True
+                anomaly_msg = (
+                    f"\U0001f534 DRAFT ORDER WITH PAYMENT — Order #{oid}\n"
+                    f"{'=' * 50}\n"
+                    f"  Status:   DRAFT (not moved to inProgress)\n"
+                    f"  Payment:  CONFIRMED\n"
+                    f"{'=' * 50}\n"
+                    f"  Customer: {rec.customer_name or '-'}\n"
+                    f"  Email:    {rec.customer_email or '-'}\n"
+                    f"  Amount:   ${rec.amount or '?'} {rec.currency or ''}\n"
+                    f"  Product:  {rec.product_name or '-'}\n"
+                    f"  Draft at: {fmt_ist(rec.became_draft_at) if rec.became_draft_at else '-'}\n"
+                    f"{'=' * 50}\n"
+                    f"  \u26a0\ufe0f ACTION REQUIRED: Order has payment but is stuck in DRAFT.\n"
+                    f"     Please investigate and move to inProgress if valid.\n"
+                    f"{'=' * 50}"
+                )
+                anomaly_alert = (now_utc(), oid, anomaly_msg)
+                self.alerts.append(anomaly_alert)
+                new_alerts.append(anomaly_alert)
+                rec.events.append((now_utc(), "ALERT -- Draft order with payment confirmed"))
+                order_log(f"ANOMALY: Order #{oid} is DRAFT but has payment confirmed!", "ALERT")
 
         self.last_poll = end
         self.poll_count += 1
