@@ -1258,7 +1258,16 @@ class AutoMonitorEngine:
                     f"  Draft at: {fmt_ist(rec.became_draft_at) if rec.became_draft_at else '-'}\n"
                     f"{'=' * 50}\n"
                     f"  \u26a0\ufe0f ACTION REQUIRED: Order has payment but is stuck in DRAFT.\n"
-                    f"     Please investigate and move to inProgress if valid.\n"
+                    f"{'=' * 50}\n"
+                    f"  FIX STEPS:\n"
+                    f"  1. Open the Payment section\n"
+                    f"  2. Scroll down — you will see 2 payments\n"
+                    f"  3. Go to Action > Link Billing Account\n"
+                    f"     on the SECOND payment\n"
+                    f"  4. Open Link Billing Account:\n"
+                    f"     - Unselect the one that is already selected\n"
+                    f"     - Select the one that was unselected\n"
+                    f"  5. Click Confirm\n"
                     f"{'=' * 50}"
                 )
                 anomaly_alert = (now_utc(), oid, anomaly_msg)
