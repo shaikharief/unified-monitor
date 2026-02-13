@@ -412,7 +412,7 @@ def send_slack(order):
         ]},
     ]
 
-    payload = json.dumps({"blocks": blocks}).encode("utf-8")
+    payload = json.dumps({"channel": "#order-alerts", "blocks": blocks}).encode("utf-8")
     req = urllib.request.Request(
         SLACK_WEBHOOK_URL, data=payload,
         headers={"Content-Type": "application/json"}, method="POST",
