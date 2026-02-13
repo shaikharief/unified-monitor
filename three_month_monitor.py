@@ -46,7 +46,7 @@ DATABRICKS = {
     "schema": "cj_prod",
 }
 
-SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK", "")
+SLACK_WEBHOOK_URL = os.environ.get("ORDER_SLACK_WEBHOOK", "") or os.environ.get("SLACK_WEBHOOK", "")
 
 WATCH_PRODUCTS = [
     "3 Month Plan",
@@ -412,7 +412,7 @@ def send_slack(order):
         ]},
     ]
 
-    payload = json.dumps({"channel": "#order-alerts", "blocks": blocks}).encode("utf-8")
+    payload = json.dumps({"blocks": blocks}).encode("utf-8")
     req = urllib.request.Request(
         SLACK_WEBHOOK_URL, data=payload,
         headers={"Content-Type": "application/json"}, method="POST",

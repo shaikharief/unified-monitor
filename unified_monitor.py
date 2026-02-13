@@ -107,6 +107,7 @@ except ImportError:
 # ╚════════════════════════════════════════════════════════════════════════════╝
 
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK", "")
+ORDER_SLACK_WEBHOOK_URL = os.environ.get("ORDER_SLACK_WEBHOOK", "")
 
 # Global flag for --force-alert
 FORCE_ALERT = False
@@ -139,7 +140,7 @@ EMAIL_CONFIG = {
 
 ORDER_SLACK_CONFIG = {
     "enabled": True,
-    "webhook_url": SLACK_WEBHOOK_URL,
+    "webhook_url": ORDER_SLACK_WEBHOOK_URL or SLACK_WEBHOOK_URL,
     "cooldown_seconds": 300,
 }
 
@@ -1303,7 +1304,6 @@ class OrderSlackSender:
         # Block Kit caused HTTP 400 errors with incoming webhooks.
         alert_text = alert_msg[:2900]  # Slack field limit with margin
         payload = {
-            "channel": "#order-alerts",
             "attachments": [{
                 "color": "#FF0000",
                 "pretext": f"\U0001f6a8 *ORDER PAYMENT ALERT — Order #{order_id}*",
